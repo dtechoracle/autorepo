@@ -9,7 +9,7 @@ import path from "path";
 const program = new Command();
 
 program
-  .version("1.0.0")
+  .version("1.0.2")
   .description("Create a new React project and Git repository")
   .arguments("<projectName>")
   .action(async (projectName) => {
@@ -70,38 +70,68 @@ program
       await execa("git", ["init"]);
       console.log("Git repository initialized.");
 
+      // Ensure all project files are created
+      const projectFilesExist = fs.existsSync(
+        path.join(projectPath, "package.json")
+      );
+      if (!projectFilesExist) {
+        console.error("Project files were not created successfully.");
+        process.exit(1);
+      }
+
       // Add and commit initial files to the repository
       console.log("Adding and committing initial files...");
       await execa("git", ["add", "."]);
       await execa("git", ["commit", "-m", "Initial commit"]);
       console.log("Initial files added and committed.");
 
-      console.log("React project created and Git repository initialized.");
+      // Create 'main' branch locally if it doesn't exist
+      console.log("Creating local main branch...");
+      await execa("git", ["branch", "-M", "main"]);
+      console.log("Local main branch created.");
 
-      // Optionally, create repository on GitHub
-      const { createRepo } = await inquirer.prompt([
-        {
-          type: "confirm",
-          name: "createRepo",
-          message: "Do you want to create a GitHub repository?",
-          default: false,
-        },
+      // Check if GitHub username and token are set in global Git config
+      const gitUsernameResult = await execa("git", [
+        "config",
+        "--global",
+        "user.name",
       ]);
+      const gitTokenResult = await execa("git", [
+        "config",
+        "--global",
+        "user.token",
+      ]);
+      let gitUsername = gitUsernameResult.stdout;
+      let gitToken = gitTokenResult.stdout;
 
-      if (createRepo) {
-        // Detect GitHub username and token from environment variables
-        const gitUsername = process.env.GITHUB_USERNAME;
-        const gitToken = process.env.GITHUB_TOKEN;
+      // If username or token are not set, prompt the user to set them
+      if (!gitUsername || !gitToken) {
+        const { username, token } = await inquirer.prompt([
+          {
+            type: "input",
+            name: "username",
+            message: "Enter your GitHub username:",
+          },
+          {
+            type: "password",
+            name: "token",
+            message: "Enter your GitHub token:",
+          },
+        ]);
 
-        if (!gitUsername || !gitToken) {
-          console.error("Error: GitHub username or token is not set.");
-          process.exit(1);
-        }
+        gitUsername = username;
+        gitToken = token;
 
-        console.log("GitHub username:", gitUsername);
+        // Set the GitHub username and token globally
+        await execa("git", ["config", "--global", "user.name", gitUsername]);
+        await execa("git", ["config", "--global", "user.token", gitToken]);
+      }
 
-        // Create repository on GitHub
-        console.log("Creating repository on GitHub...");
+      console.log("GitHub username:", gitUsername);
+
+      // Create repository on GitHub
+      console.log("Creating repository on GitHub...");
+      try {
         const response = await axios.post(
           "https://api.github.com/user/repos",
           {
@@ -111,7 +141,6 @@ program
           {
             headers: {
               Authorization: `token ${gitToken}`,
-              Accept: "application/vnd.github.v3+json",
             },
           }
         );
@@ -129,20 +158,21 @@ program
           ]);
           console.log("GitHub remote added.");
 
-          // Create 'main' branch locally if it doesn't exist
-          console.log("Creating local main branch...");
-          await execa("git", ["branch", "-M", "main"]);
-          console.log("Local main branch created.");
-
           // Push to GitHub
           console.log("Pushing to GitHub...");
           await execa("git", ["push", "-u", "origin", "main"]);
           console.log("Pushed to GitHub successfully.");
         } else {
-          console.log("Failed to create repository on GitHub.");
+          console.log(
+            "Failed to create repository on GitHub. Response status:",
+            response.status
+          );
         }
-      } else {
-        console.log("No GitHub repository created.");
+      } catch (apiError) {
+        console.error(
+          "GitHub API error:",
+          apiError.response ? apiError.response.data : apiError.message
+        );
       }
     } catch (error) {
       console.error("Error occurred:", error);

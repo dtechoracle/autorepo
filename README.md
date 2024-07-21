@@ -22,13 +22,13 @@ npm install -g repogenie
 Set your github username:
 
 ```bash
-export GITHUB_USERNAME="your_github_username"
+git config --global user.name "your_github_username"
 ```
 
 Set your github token:
 
 ```bash
-export GITHUB_TOKEN="your_github_token"
+git config --global user.token "your_github_token"
 ```
 
 ## Starting a new project
