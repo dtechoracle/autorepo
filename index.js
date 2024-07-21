@@ -10,7 +10,7 @@ const program = new Command();
 
 program
   .version("1.0.2")
-  .description("Create a new React project and Git repository")
+  .description("Create a new React project and Git repository with a single command")
   .arguments("<projectName>")
   .action(async (projectName) => {
     try {
@@ -20,7 +20,7 @@ program
           type: "list",
           name: "template",
           message: "Choose a template:",
-          choices: ["CRA (Create React App)", "Next.js"],
+          choices: ["CRA (Create React App)", "Vite", "Next.js"],
         },
       ]);
 
@@ -30,6 +30,7 @@ program
       console.log(`Creating ${template} project...`);
       if (template === "CRA (Create React App)") {
         await execa("npx", ["create-react-app", projectName]);
+        
       } else if (template === "Next.js") {
         const { options } = await inquirer.prompt([
           {
