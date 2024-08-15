@@ -7,7 +7,7 @@ Repogenie is a Node.js package that automates the creation of a new React projec
 - Create a new React project using Create React App, Vite or Next.js templates.
 - Initialize a Git repository and make the initial commit.
 - Optionally create and push to a GitHub repository.
-- Support for various Next.js setup options.
+- Support for various Reactjs / Next.js setup options.
 
 ## Installation
 
@@ -40,4 +40,5 @@ repogenie <project_name>
 ```
 
 # Contribution
+
 you can't contribute now because its closed source. you are welcome :)
